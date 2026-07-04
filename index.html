@@ -1,0 +1,1698 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>均衡分组小程序</title>
+  <script src="./assets/jszip.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #243034;
+      --muted: #667579;
+      --line: #d8e1df;
+      --soft: #f4f7f5;
+      --panel: #ffffff;
+      --accent: #0f7a68;
+      --accent-2: #b45f1b;
+      --danger: #b42318;
+      --shadow: 0 18px 50px rgba(36, 48, 52, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #eef3f1;
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    }
+
+    aside {
+      background: #173832;
+      color: #f6fbf9;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .brand h1 {
+      font-size: 28px;
+      line-height: 1.2;
+      margin: 0 0 10px;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 0;
+      line-height: 1.65;
+      color: #c7d9d3;
+      font-size: 14px;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .panel-title {
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    label {
+      color: inherit;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    input[type="file"],
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--ink);
+      padding: 8px 10px;
+      outline: none;
+    }
+
+    main input[type="number"],
+    main input[type="text"],
+    main select {
+      border-color: var(--line);
+      background: #fff;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .hint {
+      color: #bed4cc;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    button {
+      min-height: 40px;
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 14px;
+      cursor: pointer;
+      color: #fff;
+      background: var(--accent);
+      font-weight: 750;
+    }
+
+    button.secondary {
+      color: #163832;
+      background: #d9eee7;
+    }
+
+    button.ghost {
+      color: #f6fbf9;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .segmented input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .segmented label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 6px;
+      color: #f6fbf9;
+      cursor: pointer;
+      text-align: center;
+      padding: 7px 8px;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .segmented input:checked + label {
+      background: #d9eee7;
+      color: #163832;
+      border-color: #d9eee7;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    main {
+      padding: 28px;
+      min-width: 0;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .topbar h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .card-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .card-body {
+      padding: 18px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 82px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .metric span {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mapping-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .mapping-grid label {
+      color: var(--ink);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 460px;
+      border-top: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 780px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #e6f0ec;
+      color: #1f3833;
+      font-weight: 750;
+    }
+
+    tr:hover td {
+      background: #f8fbfa;
+    }
+
+    .notice {
+      padding: 12px 14px;
+      border-radius: 8px;
+      line-height: 1.55;
+      font-size: 13px;
+      border: 1px solid #f2d19b;
+      color: #68410c;
+      background: #fff6e6;
+    }
+
+    .notice.error {
+      border-color: #f1b4ae;
+      color: var(--danger);
+      background: #fff1f0;
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #e5f2ef;
+      color: #1c574d;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .empty {
+      border: 1px dashed #b8c8c4;
+      border-radius: 8px;
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+      background: #f7faf9;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .group-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .group-card h4 {
+      margin: 0 0 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+      font-size: 15px;
+    }
+
+    .group-card dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px 10px;
+      margin: 0;
+      font-size: 12px;
+    }
+
+    .group-card dt {
+      color: var(--muted);
+    }
+
+    .group-card dd {
+      margin: 0;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 940px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        padding: 22px;
+      }
+
+      main {
+        padding: 20px;
+      }
+
+      .metrics,
+      .mapping-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand">
+        <h1>均衡分组小程序</h1>
+        <p>上传 Excel 后，根据二级子公司、性别和年龄自动做尽量均衡的分组，原表其他列会随结果一起导出。</p>
+      </div>
+
+      <section class="panel">
+        <div class="panel-title">数据与规则</div>
+        <div class="field">
+          <label for="fileInput">Excel 文件</label>
+          <input id="fileInput" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        </div>
+        <div class="field">
+          <label for="headerRow">列名所在行</label>
+          <input id="headerRow" type="number" min="1" step="1" value="2">
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="groupCount">组数</label>
+            <input id="groupCount" type="number" min="1" step="1" value="4">
+          </div>
+          <div class="field">
+            <label for="peoplePerGroup">每组人数</label>
+            <input id="peoplePerGroup" type="number" min="1" step="1" value="10">
+          </div>
+        </div>
+        <div class="field">
+          <label>组内排序方式</label>
+          <div class="segmented">
+            <input id="sortByCompany" type="radio" name="sortMode" value="company" checked>
+            <label for="sortByCompany">按二级子公司</label>
+            <input id="sortByName" type="radio" name="sortMode" value="name">
+            <label for="sortByName">按姓名首拼</label>
+          </div>
+        </div>
+        <p class="hint">组数是硬约束；总人数除不尽时，部分组自动多 1 人。</p>
+        <div class="actions">
+          <button id="runBtn" disabled>开始分组</button>
+          <button id="downloadBtn" class="ghost" disabled>导出结果</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">列名匹配</div>
+        <div class="field">
+          <label for="companyColumn">所属二级子公司</label>
+          <select id="companyColumn" disabled></select>
+        </div>
+        <div class="field">
+          <label for="genderColumn">性别</label>
+          <select id="genderColumn" disabled></select>
+        </div>
+        <div class="field">
+          <label for="ageColumn">年龄</label>
+          <select id="ageColumn" disabled></select>
+        </div>
+      </section>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div>
+          <h2>分组结果</h2>
+          <p id="statusText">请先上传 `.xlsx` 文件。</p>
+        </div>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <div id="messageBox" class="notice" hidden></div>
+
+      <section class="card">
+        <div class="card-header">
+          <h3>数据概览</h3>
+        </div>
+        <div class="card-body">
+          <div class="metrics">
+            <div class="metric"><strong id="metricRows">0</strong><span>有效数据行</span></div>
+            <div class="metric"><strong id="metricCompanies">0</strong><span>二级子公司数</span></div>
+            <div class="metric"><strong id="metricGenders">0</strong><span>性别类别数</span></div>
+            <div class="metric"><strong id="metricAge">-</strong><span>总体平均年龄</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h3>每组统计</h3>
+          <span id="balanceNote" class="chip">等待分组</span>
+        </div>
+        <div class="card-body" id="summaryContainer">
+          <div class="empty">完成分组后，这里会显示各组人数、男女比例、平均年龄和公司分布。</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h3>预览</h3>
+          <span id="previewNote" class="chip">前 100 行</span>
+        </div>
+        <div class="table-wrap" id="previewContainer">
+          <div class="empty">暂无可预览数据。</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      fileName: "",
+      workbookZip: null,
+      workbookInfo: null,
+      sheetRows: [],
+      headers: [],
+      rows: [],
+      resultRows: [],
+      groups: [],
+      sortMode: "company",
+      lastOutputBlob: null
+    };
+
+    const els = {
+      fileInput: document.getElementById("fileInput"),
+      headerRow: document.getElementById("headerRow"),
+      groupCount: document.getElementById("groupCount"),
+      peoplePerGroup: document.getElementById("peoplePerGroup"),
+      sortByCompany: document.getElementById("sortByCompany"),
+      sortByName: document.getElementById("sortByName"),
+      runBtn: document.getElementById("runBtn"),
+      downloadBtn: document.getElementById("downloadBtn"),
+      companyColumn: document.getElementById("companyColumn"),
+      genderColumn: document.getElementById("genderColumn"),
+      ageColumn: document.getElementById("ageColumn"),
+      statusText: document.getElementById("statusText"),
+      chips: document.getElementById("chips"),
+      messageBox: document.getElementById("messageBox"),
+      metricRows: document.getElementById("metricRows"),
+      metricCompanies: document.getElementById("metricCompanies"),
+      metricGenders: document.getElementById("metricGenders"),
+      metricAge: document.getElementById("metricAge"),
+      balanceNote: document.getElementById("balanceNote"),
+      summaryContainer: document.getElementById("summaryContainer"),
+      previewContainer: document.getElementById("previewContainer"),
+      previewNote: document.getElementById("previewNote")
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function showMessage(text, type = "info") {
+      els.messageBox.textContent = text;
+      els.messageBox.className = type === "error" ? "notice error" : "notice";
+      els.messageBox.hidden = !text;
+    }
+
+    function normalizeHeader(value) {
+      return String(value ?? "").replace(/\s+/g, "").trim();
+    }
+
+    function normalizeText(value, fallback = "未填写") {
+      const text = String(value ?? "").trim();
+      return text || fallback;
+    }
+
+    function parseAge(value) {
+      if (value === null || value === undefined || value === "") return null;
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      const match = String(value).match(/-?\d+(\.\d+)?/);
+      if (!match) return null;
+      const age = Number(match[0]);
+      return Number.isFinite(age) ? age : null;
+    }
+
+    function average(numbers) {
+      const valid = numbers.filter((n) => typeof n === "number" && Number.isFinite(n));
+      if (!valid.length) return null;
+      return valid.reduce((sum, n) => sum + n, 0) / valid.length;
+    }
+
+    function countBy(items, getter) {
+      const map = new Map();
+      for (const item of items) {
+        const key = getter(item);
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+      return map;
+    }
+
+    function formatMap(map, limit = 4) {
+      const entries = [...map.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "zh-Hans-CN"));
+      if (!entries.length) return "-";
+      const shown = entries.slice(0, limit).map(([key, value]) => `${key}:${value}`);
+      if (entries.length > limit) shown.push(`等${entries.length}项`);
+      return shown.join("，");
+    }
+
+    function columnLettersToIndex(ref) {
+      const letters = ref.replace(/[^A-Z]/gi, "").toUpperCase();
+      let index = 0;
+      for (const letter of letters) {
+        index = index * 26 + letter.charCodeAt(0) - 64;
+      }
+      return index - 1;
+    }
+
+    function indexToColumnLetters(index) {
+      let n = index + 1;
+      let letters = "";
+      while (n > 0) {
+        const mod = (n - 1) % 26;
+        letters = String.fromCharCode(65 + mod) + letters;
+        n = Math.floor((n - 1) / 26);
+      }
+      return letters;
+    }
+
+    function cellRefToPosition(ref) {
+      const match = String(ref || "").match(/^([A-Z]+)(\d+)$/i);
+      if (!match) return null;
+      return {
+        col: columnLettersToIndex(match[1]),
+        row: Number(match[2]) - 1
+      };
+    }
+
+    function parseMergeRanges(doc) {
+      const ranges = [];
+      for (const mergeCell of doc.getElementsByTagName("mergeCell")) {
+        const ref = mergeCell.getAttribute("ref") || "";
+        const [startRef, endRef] = ref.split(":");
+        const start = cellRefToPosition(startRef);
+        const end = cellRefToPosition(endRef || startRef);
+        if (!start || !end) continue;
+        ranges.push({
+          startRow: Math.min(start.row, end.row),
+          endRow: Math.max(start.row, end.row),
+          startCol: Math.min(start.col, end.col),
+          endCol: Math.max(start.col, end.col)
+        });
+      }
+      return ranges;
+    }
+
+    function excelSerialToDate(serial) {
+      const utcDays = Math.floor(serial - 25569);
+      const utcValue = utcDays * 86400;
+      const dateInfo = new Date(utcValue * 1000);
+      if (!Number.isFinite(dateInfo.getTime())) return serial;
+      return dateInfo.toISOString().slice(0, 10);
+    }
+
+    function parseXml(text) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "application/xml");
+      if (doc.querySelector("parsererror")) {
+        throw new Error("Excel XML 解析失败，请确认文件没有损坏。");
+      }
+      return doc;
+    }
+
+    function getAttr(node, name) {
+      return node ? node.getAttribute(name) : null;
+    }
+
+    async function readZipText(zip, path) {
+      const file = zip.file(path);
+      return file ? file.async("text") : "";
+    }
+
+    function readRelationships(xmlText, basePath) {
+      if (!xmlText) return new Map();
+      const doc = parseXml(xmlText);
+      const rels = new Map();
+      for (const rel of doc.getElementsByTagName("Relationship")) {
+        let target = rel.getAttribute("Target") || "";
+        if (target && !target.startsWith("/") && basePath) {
+          target = `${basePath}/${target}`.replace(/\/[^/]+\/\.\.\//g, "/");
+        }
+        target = target.replace(/^\/+/, "");
+        rels.set(rel.getAttribute("Id"), {
+          type: rel.getAttribute("Type"),
+          target
+        });
+      }
+      return rels;
+    }
+
+    function parseSharedStrings(xmlText) {
+      if (!xmlText) return [];
+      const doc = parseXml(xmlText);
+      return [...doc.getElementsByTagName("si")].map((si) => {
+        const texts = [...si.getElementsByTagName("t")].map((t) => t.textContent || "");
+        return texts.join("");
+      });
+    }
+
+    function parseStyles(xmlText) {
+      if (!xmlText) return { dateStyleIds: new Set() };
+      const doc = parseXml(xmlText);
+      const builtInDateIds = new Set([14, 15, 16, 17, 22, 27, 30, 36, 45, 46, 47, 50, 57]);
+      const numFmts = new Map();
+      for (const fmt of doc.getElementsByTagName("numFmt")) {
+        const id = Number(fmt.getAttribute("numFmtId"));
+        const code = (fmt.getAttribute("formatCode") || "").toLowerCase();
+        if (/[ymdhs]/.test(code) && !/\[red\]/.test(code)) numFmts.set(id, true);
+      }
+      const dateStyleIds = new Set();
+      const cellXfs = doc.getElementsByTagName("cellXfs")[0];
+      if (cellXfs) {
+        [...cellXfs.getElementsByTagName("xf")].forEach((xf, index) => {
+          const fmtId = Number(xf.getAttribute("numFmtId"));
+          if (builtInDateIds.has(fmtId) || numFmts.has(fmtId)) dateStyleIds.add(index);
+        });
+      }
+      return { dateStyleIds };
+    }
+
+    function cellText(cell, sharedStrings, styles) {
+      const type = cell.getAttribute("t");
+      const styleId = Number(cell.getAttribute("s"));
+      if (type === "inlineStr") {
+        return [...cell.getElementsByTagName("t")].map((t) => t.textContent || "").join("");
+      }
+      const valueNode = cell.getElementsByTagName("v")[0];
+      const raw = valueNode ? valueNode.textContent : "";
+      if (type === "s") return sharedStrings[Number(raw)] ?? "";
+      if (type === "b") return raw === "1" ? "TRUE" : "FALSE";
+      if (type === "str") return raw;
+      if (raw === "") return "";
+      const num = Number(raw);
+      if (Number.isFinite(num)) {
+        if (styles.dateStyleIds.has(styleId)) return excelSerialToDate(num);
+        return num;
+      }
+      return raw;
+    }
+
+    function parseSheet(xmlText, sharedStrings, styles) {
+      const doc = parseXml(xmlText);
+      const rows = [];
+      for (const row of doc.getElementsByTagName("row")) {
+        const rowIndex = Number(row.getAttribute("r") || rows.length + 1) - 1;
+        const rowValues = [];
+        for (const cell of row.getElementsByTagName("c")) {
+          const ref = cell.getAttribute("r") || "";
+          const colIndex = columnLettersToIndex(ref);
+          rowValues[colIndex] = cellText(cell, sharedStrings, styles);
+        }
+        rows[rowIndex] = rowValues.map((v) => v ?? "");
+      }
+      for (const range of parseMergeRanges(doc)) {
+        const sourceValue = rows[range.startRow]?.[range.startCol];
+        if (sourceValue === undefined || sourceValue === "") continue;
+        for (let rowIndex = range.startRow; rowIndex <= range.endRow; rowIndex += 1) {
+          if (!rows[rowIndex]) rows[rowIndex] = [];
+          for (let colIndex = range.startCol; colIndex <= range.endCol; colIndex += 1) {
+            if (rows[rowIndex][colIndex] === undefined || rows[rowIndex][colIndex] === "") {
+              rows[rowIndex][colIndex] = sourceValue;
+            }
+          }
+        }
+      }
+      for (let index = 0; index < rows.length; index += 1) {
+        if (!rows[index]) rows[index] = [];
+        rows[index] = rows[index].map((v) => v ?? "");
+      }
+      while (rows.length && rows[rows.length - 1].every((v) => v === "")) rows.pop();
+      return rows;
+    }
+
+    function makeUniqueHeaders(rawHeaders) {
+      const seen = new Map();
+      return rawHeaders.map((header, index) => {
+        const base = normalizeText(header, `未命名列${index + 1}`);
+        const count = seen.get(base) || 0;
+        seen.set(base, count + 1);
+        return count ? `${base}_${count + 1}` : base;
+      });
+    }
+
+    function isUnnamedHeader(header) {
+      return /^未命名列\d+(?:_\d+)?$/.test(normalizeHeader(header));
+    }
+
+    function getWorkbookTitle() {
+      const firstRow = state.sheetRows[0] || [];
+      const title = firstRow.find((cell) => String(cell ?? "").trim() !== "");
+      return normalizeText(title, "分组结果");
+    }
+
+    function getOutputHeaders() {
+      return ["分组编号", "组内序号", ...state.headers.filter((header) => !isUnnamedHeader(header))];
+    }
+
+    function findHeaderByAliases(aliases) {
+      const normalizedAliases = aliases.map(normalizeHeader);
+      return state.headers.find((header) => normalizedAliases.includes(normalizeHeader(header)));
+    }
+
+    function getRowValueByAliases(values, aliases) {
+      const header = findHeaderByAliases(aliases);
+      return header ? values[header] ?? "" : "";
+    }
+
+    function getPersonName(personOrValues) {
+      const values = personOrValues.values ? personOrValues.values : personOrValues;
+      return String(getRowValueByAliases(values, ["姓名", "名字"]) || "").trim();
+    }
+
+    function formatDisplayName(name) {
+      const text = String(name ?? "").trim();
+      return [...text].length === 2 ? [...text].join("  ") : text;
+    }
+
+    function compareChinese(a, b) {
+      return String(a ?? "").localeCompare(String(b ?? ""), "zh-Hans-CN", { sensitivity: "base" });
+    }
+
+    function getCompanyOrderMap() {
+      const companyCol = els.companyColumn.value;
+      const order = new Map();
+      state.rows.forEach((row) => {
+        const company = normalizeText(row.values[companyCol]);
+        if (!order.has(company)) order.set(company, order.size);
+      });
+      return order;
+    }
+
+    function getSortedPeople(group) {
+      const companyOrder = getCompanyOrderMap();
+      return group.people.slice().sort((a, b) => {
+        if (state.sortMode === "name") {
+          const byName = compareChinese(getPersonName(a.source), getPersonName(b.source));
+          if (byName !== 0) return byName;
+          return (companyOrder.get(a.company) ?? 99999) - (companyOrder.get(b.company) ?? 99999);
+        }
+        const byCompany = (companyOrder.get(a.company) ?? 99999) - (companyOrder.get(b.company) ?? 99999);
+        if (byCompany !== 0) return byCompany;
+        return compareChinese(getPersonName(a.source), getPersonName(b.source));
+      });
+    }
+
+    function toChineseNumber(num) {
+      const digits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+      const units = ["", "十", "百", "千"];
+      if (!Number.isFinite(num) || num <= 0) return String(num);
+      if (num < 10) return digits[num];
+      if (num < 20) return `十${num % 10 ? digits[num % 10] : ""}`;
+      const chars = String(num).split("").map(Number);
+      let result = "";
+      chars.forEach((digit, index) => {
+        const unitIndex = chars.length - index - 1;
+        if (digit === 0) {
+          if (!result.endsWith("零") && index < chars.length - 1 && chars.slice(index + 1).some(Boolean)) result += "零";
+        } else {
+          result += `${digits[digit]}${units[unitIndex]}`;
+        }
+      });
+      return result.replace(/零+$/g, "");
+    }
+
+    function formatGroupName(groupName) {
+      const match = String(groupName || "").match(/第?(\d+)组/);
+      if (!match) return groupName;
+      return `第${toChineseNumber(Number(match[1]))}组`;
+    }
+
+    function getTemplateColumnDefinitions() {
+      const fixed = [
+        { label: "序号", aliases: [], kind: "index" },
+        { label: "所属二级子公司", aliases: ["所属二级子公司", "二级子公司", "子公司"] },
+        { label: "姓名", aliases: ["姓名", "名字"] },
+        { label: "性别", aliases: ["性别"] },
+        { label: "所在单位全称", aliases: ["所在单位全称", "单位", "单位全称", "所在单位"] },
+        { label: "职务", aliases: ["职务", "职位", "岗位"] },
+        { label: "联系方式", aliases: ["联系方式", "手机号码", "手机号", "联系电话", "电话"] }
+      ];
+      const consumed = new Set();
+      fixed.forEach((column) => {
+        const header = column.aliases.length ? findHeaderByAliases(column.aliases) : null;
+        if (header) consumed.add(header);
+      });
+      const extra = state.headers
+        .filter((header) => !isUnnamedHeader(header) && !consumed.has(header))
+        .map((header) => ({ label: header, header }));
+      return [...fixed, ...extra];
+    }
+
+    function applyHeaderRow(sheetRows, headerRowNumber) {
+      const headerIndex = headerRowNumber - 1;
+      if (!Number.isInteger(headerRowNumber) || headerRowNumber < 1) {
+        throw new Error("列名所在行必须是大于 0 的整数。");
+      }
+      if (headerIndex >= sheetRows.length) {
+        throw new Error("列名所在行超过了工作表总行数。");
+      }
+      const rawHeaders = sheetRows[headerIndex] || [];
+      const maxColumns = Math.max(
+        rawHeaders.length,
+        ...sheetRows.slice(headerIndex + 1).map((row) => row.length)
+      );
+      const headers = makeUniqueHeaders(Array.from({ length: maxColumns }, (_, index) => rawHeaders[index] ?? ""));
+      const dataRows = sheetRows.slice(headerIndex + 1)
+        .filter((row) => row.some((cell) => String(cell ?? "").trim() !== ""))
+        .map((row, rowIndex) => {
+          const values = {};
+          headers.forEach((header, index) => {
+            values[header] = row[index] ?? "";
+          });
+          return { id: rowIndex + 1, values };
+        });
+      if (!headers.some((header) => !normalizeHeader(header).startsWith("未命名列"))) {
+        throw new Error("没有识别到有效列名，请检查列名所在行。");
+      }
+      return { headers, rows: dataRows };
+    }
+
+    async function parseWorkbook(file) {
+      const buffer = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(buffer);
+      const workbookXml = await readZipText(zip, "xl/workbook.xml");
+      if (!workbookXml) throw new Error("未找到工作簿结构，请确认上传的是 .xlsx 文件。");
+      const workbookRels = readRelationships(await readZipText(zip, "xl/_rels/workbook.xml.rels"), "xl");
+      const workbookDoc = parseXml(workbookXml);
+      const firstSheet = workbookDoc.getElementsByTagName("sheet")[0];
+      if (!firstSheet) throw new Error("工作簿中没有可读取的工作表。");
+      const relId = firstSheet.getAttribute("r:id") || firstSheet.getAttribute("id");
+      const sheetRel = workbookRels.get(relId);
+      const sheetPath = sheetRel?.target || "xl/worksheets/sheet1.xml";
+      const sheetXml = await readZipText(zip, sheetPath);
+      if (!sheetXml) throw new Error("未找到第一个工作表内容。");
+      const sharedStrings = parseSharedStrings(await readZipText(zip, "xl/sharedStrings.xml"));
+      const styles = parseStyles(await readZipText(zip, "xl/styles.xml"));
+      const rows = parseSheet(sheetXml, sharedStrings, styles);
+      if (!rows.length) throw new Error("第一个工作表没有数据。");
+      return { zip, sheetRows: rows };
+    }
+
+    function applyCurrentHeaderRow() {
+      const headerRowNumber = Number.parseInt(els.headerRow.value, 10);
+      const parsed = applyHeaderRow(state.sheetRows, headerRowNumber);
+      state.headers = parsed.headers;
+      state.rows = parsed.rows;
+      state.resultRows = [];
+      state.groups = [];
+      populateColumnSelect(els.companyColumn, state.headers, ["所属二级子公司", "二级子公司", "子公司"]);
+      populateColumnSelect(els.genderColumn, state.headers, ["性别"]);
+      populateColumnSelect(els.ageColumn, state.headers, ["年龄"]);
+      const groupCount = Math.max(1, Number.parseInt(els.groupCount.value || "1", 10));
+      els.peoplePerGroup.value = Math.ceil(state.rows.length / groupCount);
+      refreshOverview();
+      renderPreview(state.rows, state.headers);
+      renderSummary([]);
+      els.downloadBtn.disabled = true;
+    }
+
+    function populateColumnSelect(select, headers, preferredNames) {
+      select.innerHTML = "";
+      headers.forEach((header) => {
+        const option = document.createElement("option");
+        option.value = header;
+        option.textContent = header;
+        select.appendChild(option);
+      });
+      const normalizedPrefs = preferredNames.map(normalizeHeader);
+      const match = headers.find((header) => normalizedPrefs.includes(normalizeHeader(header)));
+      if (match) select.value = match;
+      select.disabled = !headers.length;
+    }
+
+    function refreshOverview() {
+      const companyCol = els.companyColumn.value;
+      const genderCol = els.genderColumn.value;
+      const ageCol = els.ageColumn.value;
+      const companies = new Set(state.rows.map((row) => normalizeText(row.values[companyCol])));
+      const genders = new Set(state.rows.map((row) => normalizeText(row.values[genderCol])));
+      const avgAge = average(state.rows.map((row) => parseAge(row.values[ageCol])));
+      els.metricRows.textContent = state.rows.length;
+      els.metricCompanies.textContent = companies.size || 0;
+      els.metricGenders.textContent = genders.size || 0;
+      els.metricAge.textContent = avgAge === null ? "-" : avgAge.toFixed(1);
+      els.chips.innerHTML = [
+        state.fileName ? `文件：${state.fileName}` : "",
+        state.headers.length ? `列数：${state.headers.length}` : "",
+        state.rows.length ? `人数：${state.rows.length}` : ""
+      ].filter(Boolean).map((text) => `<span class="chip">${escapeHtml(text)}</span>`).join("");
+    }
+
+    function renderPreview(rows, headers, limit = 100) {
+      if (!rows.length) {
+        els.previewContainer.innerHTML = '<div class="empty">暂无可预览数据。</div>';
+        return;
+      }
+      const displayRows = rows.slice(0, limit);
+      els.previewNote.textContent = `前 ${Math.min(limit, rows.length)} 行`;
+      const html = `
+        <table>
+          <thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>
+          <tbody>
+            ${displayRows.map((row) => `
+              <tr>${headers.map((header) => `<td>${escapeHtml(row.values ? row.values[header] : row[header])}</td>`).join("")}</tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+      els.previewContainer.innerHTML = html;
+    }
+
+    function makeGroupTargets(total, groupCount) {
+      const base = Math.floor(total / groupCount);
+      const extra = total % groupCount;
+      return Array.from({ length: groupCount }, (_, index) => base + (index < extra ? 1 : 0));
+    }
+
+    function preparePeople(companyCol, genderCol, ageCol) {
+      return state.rows.map((row) => ({
+        source: row,
+        company: normalizeText(row.values[companyCol]),
+        gender: normalizeText(row.values[genderCol]),
+        age: parseAge(row.values[ageCol])
+      }));
+    }
+
+    function stratifiedOrder(people) {
+      const strata = new Map();
+      for (const person of people) {
+        const key = `${person.company}\u0000${person.gender}`;
+        if (!strata.has(key)) strata.set(key, []);
+        strata.get(key).push(person);
+      }
+      const layers = [...strata.values()].map((layer) => {
+        const sorted = layer.slice().sort((a, b) => {
+          const aa = a.age ?? 999;
+          const bb = b.age ?? 999;
+          return aa - bb;
+        });
+        const woven = [];
+        let left = 0;
+        let right = sorted.length - 1;
+        while (left <= right) {
+          woven.push(sorted[right--]);
+          if (left <= right) woven.push(sorted[left++]);
+        }
+        return woven;
+      }).sort((a, b) => b.length - a.length);
+
+      const ordered = [];
+      let remaining = true;
+      while (remaining) {
+        remaining = false;
+        for (const layer of layers) {
+          const item = layer.shift();
+          if (item) {
+            ordered.push(item);
+            remaining = true;
+          }
+        }
+      }
+      return ordered;
+    }
+
+    function rebuildGroupStats(group) {
+      group.companyCounts = countBy(group.people, (p) => p.company);
+      group.genderCounts = countBy(group.people, (p) => p.gender);
+      group.ageSum = 0;
+      group.ageCount = 0;
+      for (const person of group.people) {
+        if (person.age !== null) {
+          group.ageSum += person.age;
+          group.ageCount += 1;
+        }
+      }
+    }
+
+    function groupAvgAge(group) {
+      return group.ageCount ? group.ageSum / group.ageCount : null;
+    }
+
+    function makeGroupGenderTargets(targets, genderTotals) {
+      const genders = [...genderTotals.keys()];
+      const result = targets.map((targetSize) => {
+        const raw = genders.map((gender) => {
+          const exact = (genderTotals.get(gender) || 0) * targetSize / targets.reduce((sum, n) => sum + n, 0);
+          return { gender, exact, count: Math.floor(exact), rem: exact - Math.floor(exact) };
+        });
+        let used = raw.reduce((sum, item) => sum + item.count, 0);
+        raw.sort((a, b) => b.rem - a.rem || String(a.gender).localeCompare(String(b.gender), "zh-Hans-CN"));
+        for (let index = 0; used < targetSize && index < raw.length; index += 1, used += 1) {
+          raw[index].count += 1;
+        }
+        return new Map(raw.map((item) => [item.gender, item.count]));
+      });
+      return result;
+    }
+
+    function groupPenalty(group, context) {
+      const size = group.people.length || 1;
+      let genderPenalty = 0;
+      for (const gender of context.genders) {
+        const actual = group.genderCounts.get(gender) || 0;
+        const target = group.genderTarget.get(gender) || 0;
+        genderPenalty += Math.abs(actual - target);
+      }
+
+      let agePenalty = 0;
+      const avgAge = groupAvgAge(group);
+      if (avgAge !== null && context.globalAvgAge !== null) {
+        const diff = Math.abs(avgAge - context.globalAvgAge);
+        agePenalty = diff * diff;
+        if (diff > 1.5) agePenalty += (diff - 1.5) * (diff - 1.5) * 6;
+      }
+
+      let companyPenalty = 0;
+      for (const company of context.companies) {
+        const actual = group.companyCounts.get(company) || 0;
+        const target = (context.companyTotals.get(company) || 0) * group.targetSize / context.total;
+        companyPenalty += Math.abs(actual - target);
+      }
+
+      const capacityPenalty = Math.abs(size - group.targetSize) * 1000;
+      return genderPenalty * 180 + agePenalty * 26 + companyPenalty * 5 + capacityPenalty;
+    }
+
+    function totalPenalty(groups, context) {
+      return groups.reduce((sum, group) => sum + groupPenalty(group, context), 0);
+    }
+
+    function scoreGroup(group, person, context) {
+      if (group.people.length >= group.targetSize) return Number.POSITIVE_INFINITY;
+      const newSize = group.people.length + 1;
+      const companyTarget = (context.companyTotals.get(person.company) || 0) * group.targetSize / context.total;
+      const genderTarget = group.genderTarget.get(person.gender) || 0;
+      const companyAfter = (group.companyCounts.get(person.company) || 0) + 1;
+      const genderAfter = (group.genderCounts.get(person.gender) || 0) + 1;
+      const capacityPressure = newSize / group.targetSize;
+      const companyScore = Math.abs(companyAfter - companyTarget);
+      const genderBefore = Math.abs((group.genderCounts.get(person.gender) || 0) - genderTarget);
+      const genderScore = Math.abs(genderAfter - genderTarget) - genderBefore;
+      let ageScore = 0;
+      if (person.age !== null && context.globalAvgAge !== null) {
+        const ageCount = group.ageCount + 1;
+        const ageSum = group.ageSum + person.age;
+        const ageDiff = Math.abs(ageSum / ageCount - context.globalAvgAge);
+        ageScore = ageDiff * ageDiff;
+      }
+      const fillScore = Math.abs(capacityPressure - context.currentProgress);
+      return genderScore * 160 + ageScore * 24 + companyScore * 4 + fillScore;
+    }
+
+    function addPersonToGroup(group, person) {
+      group.people.push(person);
+      group.companyCounts.set(person.company, (group.companyCounts.get(person.company) || 0) + 1);
+      group.genderCounts.set(person.gender, (group.genderCounts.get(person.gender) || 0) + 1);
+      if (person.age !== null) {
+        group.ageSum += person.age;
+        group.ageCount += 1;
+      }
+    }
+
+    function optimizeGroups(groups, context) {
+      let improved = true;
+      let passes = 0;
+      while (improved && passes < 12) {
+        improved = false;
+        passes += 1;
+        for (let aIndex = 0; aIndex < groups.length; aIndex += 1) {
+          for (let bIndex = aIndex + 1; bIndex < groups.length; bIndex += 1) {
+            const groupA = groups[aIndex];
+            const groupB = groups[bIndex];
+            const before = groupPenalty(groupA, context) + groupPenalty(groupB, context);
+            let best = null;
+            let bestDelta = 0;
+            for (let i = 0; i < groupA.people.length; i += 1) {
+              for (let j = 0; j < groupB.people.length; j += 1) {
+                const personA = groupA.people[i];
+                const personB = groupB.people[j];
+                if (personA === personB) continue;
+                groupA.people[i] = personB;
+                groupB.people[j] = personA;
+                rebuildGroupStats(groupA);
+                rebuildGroupStats(groupB);
+                const after = groupPenalty(groupA, context) + groupPenalty(groupB, context);
+                const delta = before - after;
+                groupA.people[i] = personA;
+                groupB.people[j] = personB;
+                rebuildGroupStats(groupA);
+                rebuildGroupStats(groupB);
+                if (delta > bestDelta + 1e-9) {
+                  bestDelta = delta;
+                  best = { i, j };
+                }
+              }
+            }
+            if (best) {
+              const temp = groupA.people[best.i];
+              groupA.people[best.i] = groupB.people[best.j];
+              groupB.people[best.j] = temp;
+              rebuildGroupStats(groupA);
+              rebuildGroupStats(groupB);
+              improved = true;
+            }
+          }
+        }
+      }
+    }
+
+    function assignGroups() {
+      const groupCount = Number.parseInt(els.groupCount.value, 10);
+      if (!Number.isInteger(groupCount) || groupCount < 1) throw new Error("组数必须是大于 0 的整数。");
+      if (groupCount > state.rows.length) throw new Error("组数不能大于数据行人数。");
+
+      const companyCol = els.companyColumn.value;
+      const genderCol = els.genderColumn.value;
+      const ageCol = els.ageColumn.value;
+      if (!companyCol || !genderCol || !ageCol) throw new Error("请先确认二级子公司、性别、年龄三列。");
+
+      const people = preparePeople(companyCol, genderCol, ageCol);
+      const targets = makeGroupTargets(people.length, groupCount);
+      const genderTotals = countBy(people, (p) => p.gender);
+      const companyTotals = countBy(people, (p) => p.company);
+      const groupGenderTargets = makeGroupGenderTargets(targets, genderTotals);
+      const groups = targets.map((targetSize, index) => ({
+        id: index + 1,
+        targetSize,
+        people: [],
+        companyCounts: new Map(),
+        genderCounts: new Map(),
+        genderTarget: groupGenderTargets[index],
+        ageSum: 0,
+        ageCount: 0,
+        score: 0
+      }));
+      const context = {
+        total: people.length,
+        companyTotals,
+        genderTotals,
+        genders: [...genderTotals.keys()],
+        companies: [...companyTotals.keys()],
+        globalAvgAge: average(people.map((p) => p.age)),
+        currentProgress: 0
+      };
+
+      const ordered = stratifiedOrder(people).sort((a, b) => {
+        const genderDelta = (context.genderTotals.get(b.gender) || 0) - (context.genderTotals.get(a.gender) || 0);
+        if (genderDelta !== 0) return genderDelta;
+        return Math.abs((b.age ?? context.globalAvgAge ?? 0) - (context.globalAvgAge ?? 0)) -
+          Math.abs((a.age ?? context.globalAvgAge ?? 0) - (context.globalAvgAge ?? 0));
+      });
+      ordered.forEach((person, index) => {
+        context.currentProgress = (index + 1) / people.length;
+        let bestGroup = null;
+        let bestScore = Number.POSITIVE_INFINITY;
+        for (const group of groups) {
+          const score = scoreGroup(group, person, context);
+          if (score < bestScore - 1e-9 || (score === bestScore && group.people.length < (bestGroup?.people.length ?? Infinity))) {
+            bestScore = score;
+            bestGroup = group;
+          }
+        }
+        if (!bestGroup) throw new Error("没有可用的组容量，请检查组数设置。");
+        addPersonToGroup(bestGroup, person);
+      });
+
+      optimizeGroups(groups, context);
+      groups.forEach((group) => {
+        group.score = groupPenalty(group, context);
+      });
+
+      const resultRows = [];
+      for (const group of groups) {
+        getSortedPeople(group).forEach((person, index) => {
+          const values = { ...person.source.values };
+          const nameHeader = findHeaderByAliases(["姓名", "名字"]);
+          if (nameHeader) values[nameHeader] = formatDisplayName(values[nameHeader]);
+          resultRows.push({
+            "分组编号": `第${group.id}组`,
+            "组内序号": index + 1,
+            ...values
+          });
+        });
+      }
+      return { groups, resultRows };
+    }
+
+    function refreshResultRowsFromGroups() {
+      if (!state.groups.length) return;
+      const resultRows = [];
+      for (const group of state.groups) {
+        getSortedPeople(group).forEach((person, index) => {
+          const values = { ...person.source.values };
+          const nameHeader = findHeaderByAliases(["姓名", "名字"]);
+          if (nameHeader) values[nameHeader] = formatDisplayName(values[nameHeader]);
+          resultRows.push({
+            "分组编号": `第${group.id}组`,
+            "组内序号": index + 1,
+            ...values
+          });
+        });
+      }
+      state.resultRows = resultRows;
+      renderPreview(state.resultRows, getOutputHeaders());
+    }
+
+    function renderSummary(groups) {
+      if (!groups.length) {
+        els.summaryContainer.innerHTML = '<div class="empty">完成分组后，这里会显示各组人数、男女比例、平均年龄和公司分布。</div>';
+        return;
+      }
+      els.summaryContainer.innerHTML = `<div class="summary-grid">${
+        groups.map((group) => {
+          const avgAge = group.ageCount ? (group.ageSum / group.ageCount).toFixed(1) : "-";
+          return `
+            <article class="group-card">
+              <h4><span>第${group.id}组</span><span>${group.people.length}/${group.targetSize} 人</span></h4>
+              <dl>
+                <dt>性别</dt><dd title="${escapeHtml(formatMap(group.genderCounts, 20))}">${escapeHtml(formatMap(group.genderCounts))}</dd>
+                <dt>平均年龄</dt><dd>${escapeHtml(avgAge)}</dd>
+                <dt>二级子公司</dt><dd title="${escapeHtml(formatMap(group.companyCounts, 40))}">${escapeHtml(formatMap(group.companyCounts))}</dd>
+              </dl>
+            </article>
+          `;
+        }).join("")
+      }</div>`;
+      const sizes = groups.map((g) => g.people.length);
+      const min = Math.min(...sizes);
+      const max = Math.max(...sizes);
+      const avgAges = groups.map(groupAvgAge).filter((age) => age !== null);
+      const ageRange = avgAges.length ? Math.max(...avgAges) - Math.min(...avgAges) : 0;
+      const genderGap = Math.max(...groups.map((group) => {
+        let gap = 0;
+        for (const [gender, target] of group.genderTarget.entries()) {
+          gap += Math.abs((group.genderCounts.get(gender) || 0) - target);
+        }
+        return gap;
+      }));
+      els.balanceNote.textContent = `人数差 ${max - min}，年龄差 ${ageRange.toFixed(1)} 岁，性别偏差 ${genderGap}`;
+    }
+
+    function xmlEscape(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    function buildSheetXml(headers, rows, title) {
+      const titleRow = [title, ...Array(Math.max(0, headers.length - 1)).fill("")];
+      const allRows = [titleRow, headers, ...rows.map((row) => headers.map((header) => row[header] ?? ""))];
+      const rowXml = allRows.map((row, rowIndex) => {
+        const cells = row.map((value, colIndex) => {
+          const ref = `${indexToColumnLetters(colIndex)}${rowIndex + 1}`;
+          if (typeof value === "number" && Number.isFinite(value)) {
+            return `<c r="${ref}"><v>${value}</v></c>`;
+          }
+          return `<c r="${ref}" t="inlineStr"><is><t>${xmlEscape(value)}</t></is></c>`;
+        }).join("");
+        return `<row r="${rowIndex + 1}">${cells}</row>`;
+      }).join("");
+      const lastCell = `${indexToColumnLetters(headers.length - 1)}${allRows.length}`;
+      const titleMerge = headers.length > 1 ? `<mergeCells count="1"><mergeCell ref="A1:${indexToColumnLetters(headers.length - 1)}1"/></mergeCells>` : "";
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <dimension ref="A1:${lastCell}"/>
+  <sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView></sheetViews>
+  <sheetFormatPr defaultRowHeight="18"/>
+  <cols>${headers.map((header, index) => {
+    const width = Math.min(28, Math.max(10, String(header).length + 4));
+    return `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`;
+  }).join("")}</cols>
+  <sheetData>${rowXml}</sheetData>
+  ${titleMerge}
+  <autoFilter ref="A2:${lastCell}"/>
+</worksheet>`;
+    }
+
+    function buildTemplateRows() {
+      const groupMap = new Map();
+      for (const row of state.resultRows) {
+        const groupName = row["分组编号"] || "未分组";
+        if (!groupMap.has(groupName)) groupMap.set(groupName, []);
+        groupMap.get(groupName).push(row);
+      }
+      return [...groupMap.entries()].map(([groupName, rows]) => ({
+        groupName,
+        rows: rows.slice().sort((a, b) => Number(a["组内序号"] || 0) - Number(b["组内序号"] || 0))
+      }));
+    }
+
+    function buildTemplateSheetXml(title) {
+      const columnDefs = getTemplateColumnDefinitions();
+      const columns = columnDefs.map((column) => column.label);
+      const groups = buildTemplateRows();
+      const lastColumnLetter = indexToColumnLetters(columns.length - 1);
+      const mergeRefs = [`A1:${lastColumnLetter}1`];
+      const rowXml = [];
+      let rowNumber = 1;
+
+      function cell(ref, value, styleId) {
+        if (typeof value === "number" && Number.isFinite(value)) {
+          return `<c r="${ref}" s="${styleId}"><v>${value}</v></c>`;
+        }
+        return `<c r="${ref}" s="${styleId}" t="inlineStr"><is><t>${xmlEscape(value)}</t></is></c>`;
+      }
+
+      function emptyCell(ref, styleId) {
+        return `<c r="${ref}" s="${styleId}"/>`;
+      }
+
+      rowXml.push(`<row r="${rowNumber}" ht="50.5" customHeight="1">${
+        columns.map((_, colIndex) => colIndex === 0
+          ? cell(`A${rowNumber}`, title, 1)
+          : emptyCell(`${indexToColumnLetters(colIndex)}${rowNumber}`, 1)
+        ).join("")
+      }</row>`);
+      rowNumber += 1;
+
+      groups.forEach((group, groupIndex) => {
+        if (groupIndex > 0) {
+          rowXml.push(`<row r="${rowNumber}" ht="12" customHeight="1">${
+            columns.map((_, colIndex) => emptyCell(`${indexToColumnLetters(colIndex)}${rowNumber}`, 4)).join("")
+          }</row>`);
+          rowNumber += 1;
+        }
+
+        const groupTitleRow = rowNumber;
+        mergeRefs.push(`A${groupTitleRow}:${lastColumnLetter}${groupTitleRow}`);
+        rowXml.push(`<row r="${rowNumber}" ht="20" customHeight="1">${
+          columns.map((_, colIndex) => colIndex === 0
+            ? cell(`A${rowNumber}`, formatGroupName(group.groupName), 2)
+            : emptyCell(`${indexToColumnLetters(colIndex)}${rowNumber}`, 2)
+          ).join("")
+        }</row>`);
+        rowNumber += 1;
+
+        rowXml.push(`<row r="${rowNumber}" ht="36" customHeight="1">${
+          columns.map((header, colIndex) => cell(`${indexToColumnLetters(colIndex)}${rowNumber}`, header, 3)).join("")
+        }</row>`);
+        rowNumber += 1;
+
+        group.rows.forEach((resultRow, rowIndex) => {
+          const values = resultRow;
+          const data = columnDefs.map((column) => {
+            if (column.kind === "index") return rowIndex + 1;
+            if (column.header) return values[column.header] ?? "";
+            return getRowValueByAliases(values, column.aliases);
+          });
+          rowXml.push(`<row r="${rowNumber}" ht="32" customHeight="1">${
+            data.map((value, colIndex) => cell(`${indexToColumnLetters(colIndex)}${rowNumber}`, value, colIndex === 0 ? 5 : 6)).join("")
+          }</row>`);
+          rowNumber += 1;
+        });
+      });
+
+      const lastCell = `${lastColumnLetter}${Math.max(1, rowNumber - 1)}`;
+      const mergeXml = mergeRefs.length ? `<mergeCells count="${mergeRefs.length}">${mergeRefs.map((ref) => `<mergeCell ref="${ref}"/>`).join("")}</mergeCells>` : "";
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <dimension ref="A1:${lastCell}"/>
+  <sheetViews><sheetView workbookViewId="0" zoomScale="90"><selection activeCell="A1" sqref="A1"/></sheetView></sheetViews>
+  <sheetFormatPr defaultColWidth="9" defaultRowHeight="16.8"/>
+  <cols>
+    <col min="1" max="1" width="5.9" customWidth="1"/>
+    <col min="2" max="2" width="17.5" customWidth="1"/>
+    <col min="3" max="3" width="9" customWidth="1"/>
+    <col min="4" max="4" width="6.5" customWidth="1"/>
+    <col min="5" max="5" width="36.8" customWidth="1"/>
+    <col min="6" max="6" width="25.3" customWidth="1"/>
+    <col min="7" max="7" width="17.3" customWidth="1"/>
+    ${columns.length > 7 ? `<col min="8" max="${columns.length}" width="16" customWidth="1"/>` : ""}
+  </cols>
+  <sheetData>${rowXml.join("")}</sheetData>
+  ${mergeXml}
+  <printOptions horizontalCentered="1"/>
+  <pageMargins left="0.3937" right="0.3937" top="0.7479" bottom="1.0236" header="0.315" footer="0.315"/>
+  <pageSetup paperSize="9" scale="84" fitToHeight="0" orientation="portrait"/>
+</worksheet>`;
+    }
+
+    async function exportResultWorkbook() {
+      if (!state.resultRows.length) throw new Error("请先完成分组。");
+      const zip = new JSZip();
+      zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>`);
+      zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>`);
+      zip.file("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="分组结果" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`);
+      zip.file("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`);
+      zip.file("xl/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="5">
+    <font><sz val="11"/><color theme="1"/><name val="宋体"/><charset val="134"/></font>
+    <font><b/><sz val="20"/><color rgb="FF000000"/><name val="方正细黑一简体"/><charset val="134"/></font>
+    <font><b/><sz val="12"/><color rgb="FF000000"/><name val="方正细黑一简体"/><charset val="134"/></font>
+    <font><sz val="12"/><color rgb="FF000000"/><name val="方正细黑一简体"/><charset val="134"/></font>
+    <font><sz val="12"/><color rgb="FF000000"/><name val="微软雅黑"/><charset val="134"/></font>
+  </fonts>
+  <fills count="4">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFC9C9C9"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFFFFFFF"/><bgColor indexed="64"/></patternFill></fill>
+  </fills>
+  <borders count="3">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border><left style="thin"><color rgb="FF000000"/></left><right style="thin"><color rgb="FF000000"/></right><top style="thin"><color rgb="FF000000"/></top><bottom style="thin"><color rgb="FF000000"/></bottom><diagonal/></border>
+    <border><left style="thin"><color rgb="FFB2B2B2"/></left><right style="thin"><color rgb="FFB2B2B2"/></right><top style="thin"><color rgb="FFB2B2B2"/></top><bottom style="thin"><color rgb="FFB2B2B2"/></bottom><diagonal/></border>
+  </borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"><alignment vertical="center"/></xf></cellStyleXfs>
+  <cellXfs count="7">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment vertical="center"/></xf>
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+  </cellXfs>
+  <cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`);
+      const workbookTitle = getWorkbookTitle();
+      zip.file("xl/worksheets/sheet1.xml", buildTemplateSheetXml(workbookTitle || "学员分组及通讯录"));
+      const now = new Date().toISOString();
+      zip.file("docProps/core.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>${xmlEscape(workbookTitle)}</dc:title><dc:creator>均衡分组小程序</dc:creator><cp:lastModifiedBy>均衡分组小程序</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
+</cp:coreProperties>`);
+      zip.file("docProps/app.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>均衡分组小程序</Application>
+</Properties>`);
+      return zip.generateAsync({
+        type: "blob",
+        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    els.fileInput.addEventListener("change", async () => {
+      const file = els.fileInput.files?.[0];
+      if (!file) return;
+      showMessage("");
+      els.statusText.textContent = "正在读取 Excel...";
+      els.runBtn.disabled = true;
+      els.downloadBtn.disabled = true;
+      try {
+        const parsed = await parseWorkbook(file);
+        state.fileName = file.name;
+        state.sheetRows = parsed.sheetRows;
+        applyCurrentHeaderRow();
+        els.runBtn.disabled = false;
+        els.statusText.textContent = `文件读取完成，已按第 ${Number.parseInt(els.headerRow.value, 10)} 行作为列名。`;
+      } catch (error) {
+        showMessage(error.message || String(error), "error");
+        els.statusText.textContent = "读取失败。";
+      }
+    });
+
+    els.headerRow.addEventListener("change", () => {
+      if (!state.sheetRows.length) return;
+      showMessage("");
+      try {
+        applyCurrentHeaderRow();
+        els.runBtn.disabled = false;
+        els.statusText.textContent = `已按第 ${Number.parseInt(els.headerRow.value, 10)} 行重新提取列名。`;
+      } catch (error) {
+        els.runBtn.disabled = true;
+        els.downloadBtn.disabled = true;
+        showMessage(error.message || String(error), "error");
+      }
+    });
+
+    [els.companyColumn, els.genderColumn, els.ageColumn].forEach((select) => {
+      select.addEventListener("change", () => {
+        refreshOverview();
+        state.resultRows = [];
+        state.groups = [];
+        els.downloadBtn.disabled = true;
+        renderSummary([]);
+      });
+    });
+
+    els.groupCount.addEventListener("input", () => {
+      if (state.rows.length) {
+        const groupCount = Math.max(1, Number.parseInt(els.groupCount.value || "1", 10));
+        els.peoplePerGroup.value = Math.ceil(state.rows.length / groupCount);
+      }
+    });
+
+    [els.sortByCompany, els.sortByName].forEach((input) => {
+      input.addEventListener("change", () => {
+        if (!input.checked) return;
+        state.sortMode = input.value;
+        refreshResultRowsFromGroups();
+        if (state.resultRows.length) {
+          els.statusText.textContent = state.sortMode === "name"
+            ? "已按姓名首拼重新排序组内名单。"
+            : "已按二级子公司顺序重新排序组内名单。";
+        }
+      });
+    });
+
+    els.runBtn.addEventListener("click", () => {
+      showMessage("");
+      try {
+        const result = assignGroups();
+        state.groups = result.groups;
+        state.resultRows = result.resultRows;
+        renderSummary(state.groups);
+        renderPreview(state.resultRows, getOutputHeaders());
+        els.downloadBtn.disabled = false;
+        els.statusText.textContent = "分组完成，可检查统计后导出结果。";
+      } catch (error) {
+        showMessage(error.message || String(error), "error");
+      }
+    });
+
+    els.downloadBtn.addEventListener("click", async () => {
+      showMessage("");
+      els.downloadBtn.disabled = true;
+      try {
+        const blob = await exportResultWorkbook();
+        const baseName = state.fileName.replace(/\.xlsx$/i, "") || "名单";
+        downloadBlob(blob, `${baseName}-分组结果.xlsx`);
+      } catch (error) {
+        showMessage(error.message || String(error), "error");
+      } finally {
+        els.downloadBtn.disabled = !state.resultRows.length;
+      }
+    });
+
+    window.addEventListener("error", (event) => {
+      showMessage(event.message || "页面脚本运行出错。", "error");
+    });
+
+  </script>
+</body>
+</html>
