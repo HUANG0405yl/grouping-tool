@@ -436,7 +436,7 @@
         </div>
         <div class="field">
           <label for="headerRow">列名所在行</label>
-          <input id="headerRow" type="number" min="1" step="1" value="2">
+          <input id="headerRow" type="number" min="1" step="1" value="1">
         </div>
         <div class="row">
           <div class="field">
@@ -821,6 +821,10 @@
       return ["分组编号", "组内序号", ...state.headers.filter((header) => !isUnnamedHeader(header))];
     }
 
+    function getSelectableHeaders(headers) {
+      return headers.filter((header) => !isUnnamedHeader(header));
+    }
+
     function findHeaderByAliases(aliases) {
       const normalizedAliases = aliases.map(normalizeHeader);
       return state.headers.find((header) => normalizedAliases.includes(normalizeHeader(header)));
@@ -944,6 +948,26 @@
       return { headers, rows: dataRows };
     }
 
+    function scoreHeaderCandidate(row) {
+      const knownHeaders = [
+        "序号", "姓名", "名字", "所属二级子公司", "二级子公司", "子公司",
+        "性别", "年龄", "部门", "岗位", "职务", "职位",
+        "所在单位全称", "单位", "联系方式", "手机号码", "手机号", "电话"
+      ].map(normalizeHeader);
+      const values = (row || []).map((cell) => normalizeText(cell, "")).filter(Boolean);
+      const knownCount = values.filter((value) => knownHeaders.includes(normalizeHeader(value))).length;
+      const shortTextCount = values.filter((value) => !/\d{2,}/.test(value) && value.length <= 12).length;
+      return knownCount * 20 + values.length * 3 + shortTextCount;
+    }
+
+    function detectHeaderRowNumber(sheetRows) {
+      const candidates = [1, 2].filter((rowNumber) => rowNumber <= sheetRows.length);
+      if (!candidates.length) return 1;
+      return candidates
+        .map((rowNumber) => ({ rowNumber, score: scoreHeaderCandidate(sheetRows[rowNumber - 1]) }))
+        .sort((a, b) => b.score - a.score || a.rowNumber - b.rowNumber)[0].rowNumber;
+    }
+
     async function parseWorkbook(file) {
       const buffer = await file.arrayBuffer();
       const zip = await JSZip.loadAsync(buffer);
@@ -985,28 +1009,33 @@
 
     function populateColumnSelect(select, headers, preferredNames) {
       select.innerHTML = "";
-      headers.forEach((header) => {
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "请选择列名";
+      select.appendChild(placeholder);
+      const selectableHeaders = getSelectableHeaders(headers);
+      selectableHeaders.forEach((header) => {
         const option = document.createElement("option");
         option.value = header;
         option.textContent = header;
         select.appendChild(option);
       });
       const normalizedPrefs = preferredNames.map(normalizeHeader);
-      const match = headers.find((header) => normalizedPrefs.includes(normalizeHeader(header)));
-      if (match) select.value = match;
-      select.disabled = !headers.length;
+      const match = selectableHeaders.find((header) => normalizedPrefs.includes(normalizeHeader(header)));
+      select.value = match || "";
+      select.disabled = !selectableHeaders.length;
     }
 
     function refreshOverview() {
       const companyCol = els.companyColumn.value;
       const genderCol = els.genderColumn.value;
       const ageCol = els.ageColumn.value;
-      const companies = new Set(state.rows.map((row) => normalizeText(row.values[companyCol])));
-      const genders = new Set(state.rows.map((row) => normalizeText(row.values[genderCol])));
-      const avgAge = average(state.rows.map((row) => parseAge(row.values[ageCol])));
+      const companies = companyCol ? new Set(state.rows.map((row) => normalizeText(row.values[companyCol]))) : null;
+      const genders = genderCol ? new Set(state.rows.map((row) => normalizeText(row.values[genderCol]))) : null;
+      const avgAge = ageCol ? average(state.rows.map((row) => parseAge(row.values[ageCol]))) : null;
       els.metricRows.textContent = state.rows.length;
-      els.metricCompanies.textContent = companies.size || 0;
-      els.metricGenders.textContent = genders.size || 0;
+      els.metricCompanies.textContent = companies ? companies.size || 0 : "-";
+      els.metricGenders.textContent = genders ? genders.size || 0 : "-";
       els.metricAge.textContent = avgAge === null ? "-" : avgAge.toFixed(1);
       els.chips.innerHTML = [
         state.fileName ? `文件：${state.fileName}` : "",
@@ -1607,6 +1636,7 @@
         const parsed = await parseWorkbook(file);
         state.fileName = file.name;
         state.sheetRows = parsed.sheetRows;
+        els.headerRow.value = detectHeaderRowNumber(state.sheetRows);
         applyCurrentHeaderRow();
         els.runBtn.disabled = false;
         els.statusText.textContent = `文件读取完成，已按第 ${Number.parseInt(els.headerRow.value, 10)} 行作为列名。`;
