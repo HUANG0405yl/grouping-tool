@@ -867,6 +867,10 @@
       return ["分组编号", "组内序号", ...state.headers.filter((header) => !isUnnamedHeader(header))];
     }
 
+    function getSelectableHeaders(headers) {
+      return headers.filter((header) => !isUnnamedHeader(header));
+    }
+
     function findHeaderByAliases(aliases) {
       const normalizedAliases = aliases.map(normalizeHeader);
       return state.headers.find((header) => normalizedAliases.includes(normalizeHeader(header)));
@@ -1031,28 +1035,33 @@
 
     function populateColumnSelect(select, headers, preferredNames) {
       select.innerHTML = "";
-      headers.forEach((header) => {
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "请选择列名";
+      select.appendChild(placeholder);
+      const selectableHeaders = getSelectableHeaders(headers);
+      selectableHeaders.forEach((header) => {
         const option = document.createElement("option");
         option.value = header;
         option.textContent = header;
         select.appendChild(option);
       });
       const normalizedPrefs = preferredNames.map(normalizeHeader);
-      const match = headers.find((header) => normalizedPrefs.includes(normalizeHeader(header)));
-      if (match) select.value = match;
-      select.disabled = !headers.length;
+      const match = selectableHeaders.find((header) => normalizedPrefs.includes(normalizeHeader(header)));
+      select.value = match || "";
+      select.disabled = !selectableHeaders.length;
     }
 
     function refreshOverview() {
       const companyCol = els.companyColumn.value;
       const genderCol = els.genderColumn.value;
       const ageCol = els.ageColumn.value;
-      const companies = new Set(state.rows.map((row) => normalizeText(row.values[companyCol])));
-      const genders = new Set(state.rows.map((row) => normalizeText(row.values[genderCol])));
-      const avgAge = average(state.rows.map((row) => parseAge(row.values[ageCol])));
+      const companies = companyCol ? new Set(state.rows.map((row) => normalizeText(row.values[companyCol]))) : null;
+      const genders = genderCol ? new Set(state.rows.map((row) => normalizeText(row.values[genderCol]))) : null;
+      const avgAge = ageCol ? average(state.rows.map((row) => parseAge(row.values[ageCol]))) : null;
       els.metricRows.textContent = state.rows.length;
-      els.metricCompanies.textContent = companies.size || 0;
-      els.metricGenders.textContent = genders.size || 0;
+      els.metricCompanies.textContent = companies ? companies.size || 0 : "-";
+      els.metricGenders.textContent = genders ? genders.size || 0 : "-";
       els.metricAge.textContent = avgAge === null ? "-" : avgAge.toFixed(1);
       els.chips.innerHTML = [
         state.fileName ? `文件：${state.fileName}` : "",
