@@ -539,6 +539,11 @@
       resultRows: [],
       groups: [],
       sortMode: "company",
+      balanceOptions: {
+        company: false,
+        gender: false,
+        age: false
+      },
       lastOutputBlob: null
     };
 
@@ -1070,24 +1075,28 @@
       return Array.from({ length: groupCount }, (_, index) => base + (index < extra ? 1 : 0));
     }
 
-    function preparePeople(companyCol, genderCol, ageCol) {
+    function preparePeople(companyCol, genderCol, ageCol, options) {
       return state.rows.map((row) => ({
         source: row,
-        company: normalizeText(row.values[companyCol]),
-        gender: normalizeText(row.values[genderCol]),
-        age: parseAge(row.values[ageCol])
+        company: options.company ? normalizeText(row.values[companyCol]) : "未选择",
+        gender: options.gender ? normalizeText(row.values[genderCol]) : "未选择",
+        age: options.age ? parseAge(row.values[ageCol]) : null
       }));
     }
 
-    function stratifiedOrder(people) {
+    function stratifiedOrder(people, options) {
       const strata = new Map();
       for (const person of people) {
-        const key = `${person.company}\u0000${person.gender}`;
+        const keyParts = [];
+        if (options.company) keyParts.push(person.company);
+        if (options.gender) keyParts.push(person.gender);
+        const key = keyParts.length ? keyParts.join("\u0000") : "all";
         if (!strata.has(key)) strata.set(key, []);
         strata.get(key).push(person);
       }
       const layers = [...strata.values()].map((layer) => {
         const sorted = layer.slice().sort((a, b) => {
+          if (!options.age) return 0;
           const aa = a.age ?? 999;
           const bb = b.age ?? 999;
           return aa - bb;
@@ -1095,9 +1104,13 @@
         const woven = [];
         let left = 0;
         let right = sorted.length - 1;
-        while (left <= right) {
-          woven.push(sorted[right--]);
-          if (left <= right) woven.push(sorted[left++]);
+        if (options.age) {
+          while (left <= right) {
+            woven.push(sorted[right--]);
+            if (left <= right) woven.push(sorted[left++]);
+          }
+        } else {
+          woven.push(...sorted);
         }
         return woven;
       }).sort((a, b) => b.length - a.length);
@@ -1154,25 +1167,29 @@
     function groupPenalty(group, context) {
       const size = group.people.length || 1;
       let genderPenalty = 0;
-      for (const gender of context.genders) {
-        const actual = group.genderCounts.get(gender) || 0;
-        const target = group.genderTarget.get(gender) || 0;
-        genderPenalty += Math.abs(actual - target);
+      if (context.options.gender) {
+        for (const gender of context.genders) {
+          const actual = group.genderCounts.get(gender) || 0;
+          const target = group.genderTarget.get(gender) || 0;
+          genderPenalty += Math.abs(actual - target);
+        }
       }
 
       let agePenalty = 0;
       const avgAge = groupAvgAge(group);
-      if (avgAge !== null && context.globalAvgAge !== null) {
+      if (context.options.age && avgAge !== null && context.globalAvgAge !== null) {
         const diff = Math.abs(avgAge - context.globalAvgAge);
         agePenalty = diff * diff;
         if (diff > 1.5) agePenalty += (diff - 1.5) * (diff - 1.5) * 6;
       }
 
       let companyPenalty = 0;
-      for (const company of context.companies) {
-        const actual = group.companyCounts.get(company) || 0;
-        const target = (context.companyTotals.get(company) || 0) * group.targetSize / context.total;
-        companyPenalty += Math.abs(actual - target);
+      if (context.options.company) {
+        for (const company of context.companies) {
+          const actual = group.companyCounts.get(company) || 0;
+          const target = (context.companyTotals.get(company) || 0) * group.targetSize / context.total;
+          companyPenalty += Math.abs(actual - target);
+        }
       }
 
       const capacityPenalty = Math.abs(size - group.targetSize) * 1000;
@@ -1191,11 +1208,11 @@
       const companyAfter = (group.companyCounts.get(person.company) || 0) + 1;
       const genderAfter = (group.genderCounts.get(person.gender) || 0) + 1;
       const capacityPressure = newSize / group.targetSize;
-      const companyScore = Math.abs(companyAfter - companyTarget);
+      const companyScore = context.options.company ? Math.abs(companyAfter - companyTarget) : 0;
       const genderBefore = Math.abs((group.genderCounts.get(person.gender) || 0) - genderTarget);
-      const genderScore = Math.abs(genderAfter - genderTarget) - genderBefore;
+      const genderScore = context.options.gender ? Math.abs(genderAfter - genderTarget) - genderBefore : 0;
       let ageScore = 0;
-      if (person.age !== null && context.globalAvgAge !== null) {
+      if (context.options.age && person.age !== null && context.globalAvgAge !== null) {
         const ageCount = group.ageCount + 1;
         const ageSum = group.ageSum + person.age;
         const ageDiff = Math.abs(ageSum / ageCount - context.globalAvgAge);
@@ -1270,9 +1287,14 @@
       const companyCol = els.companyColumn.value;
       const genderCol = els.genderColumn.value;
       const ageCol = els.ageColumn.value;
-      if (!companyCol || !genderCol || !ageCol) throw new Error("请先确认二级子公司、性别、年龄三列。");
+      const options = {
+        company: !!companyCol,
+        gender: !!genderCol,
+        age: !!ageCol
+      };
+      state.balanceOptions = options;
 
-      const people = preparePeople(companyCol, genderCol, ageCol);
+      const people = preparePeople(companyCol, genderCol, ageCol, options);
       const targets = makeGroupTargets(people.length, groupCount);
       const genderTotals = countBy(people, (p) => p.gender);
       const companyTotals = countBy(people, (p) => p.company);
@@ -1295,14 +1317,20 @@
         genders: [...genderTotals.keys()],
         companies: [...companyTotals.keys()],
         globalAvgAge: average(people.map((p) => p.age)),
-        currentProgress: 0
+        currentProgress: 0,
+        options
       };
 
-      const ordered = stratifiedOrder(people).sort((a, b) => {
-        const genderDelta = (context.genderTotals.get(b.gender) || 0) - (context.genderTotals.get(a.gender) || 0);
-        if (genderDelta !== 0) return genderDelta;
-        return Math.abs((b.age ?? context.globalAvgAge ?? 0) - (context.globalAvgAge ?? 0)) -
-          Math.abs((a.age ?? context.globalAvgAge ?? 0) - (context.globalAvgAge ?? 0));
+      const ordered = stratifiedOrder(people, options).sort((a, b) => {
+        if (options.gender) {
+          const genderDelta = (context.genderTotals.get(b.gender) || 0) - (context.genderTotals.get(a.gender) || 0);
+          if (genderDelta !== 0) return genderDelta;
+        }
+        if (options.age) {
+          return Math.abs((b.age ?? context.globalAvgAge ?? 0) - (context.globalAvgAge ?? 0)) -
+            Math.abs((a.age ?? context.globalAvgAge ?? 0) - (context.globalAvgAge ?? 0));
+        }
+        return 0;
       });
       ordered.forEach((person, index) => {
         context.currentProgress = (index + 1) / people.length;
@@ -1384,6 +1412,7 @@
       const max = Math.max(...sizes);
       const avgAges = groups.map(groupAvgAge).filter((age) => age !== null);
       const ageRange = avgAges.length ? Math.max(...avgAges) - Math.min(...avgAges) : 0;
+      const options = state.balanceOptions || { company: false, gender: false, age: false };
       const genderGap = Math.max(...groups.map((group) => {
         let gap = 0;
         for (const [gender, target] of group.genderTarget.entries()) {
@@ -1391,7 +1420,10 @@
         }
         return gap;
       }));
-      els.balanceNote.textContent = `人数差 ${max - min}，年龄差 ${ageRange.toFixed(1)} 岁，性别偏差 ${genderGap}`;
+      const ageText = options.age ? `年龄差 ${ageRange.toFixed(1)} 岁` : "年龄未选择";
+      const genderText = options.gender ? `性别偏差 ${genderGap}` : "性别未选择";
+      const companyText = options.company ? "二级子公司已选择" : "二级子公司未选择";
+      els.balanceNote.textContent = `人数差 ${max - min}，${ageText}，${genderText}，${companyText}`;
     }
 
     function xmlEscape(value) {
