@@ -457,7 +457,7 @@
         </div>
         <div class="field">
           <label for="headerRow">列名所在行</label>
-          <input id="headerRow" type="number" min="1" step="1" value="2">
+          <input id="headerRow" type="number" min="1" step="1" value="1">
         </div>
         <div class="row">
           <div class="field">
@@ -992,6 +992,26 @@
         throw new Error("没有识别到有效列名，请检查列名所在行。");
       }
       return { headers, rows: dataRows };
+    }
+
+    function scoreHeaderCandidate(row) {
+      const knownHeaders = [
+        "序号", "姓名", "名字", "所属二级子公司", "二级子公司", "子公司",
+        "性别", "年龄", "部门", "岗位", "职务", "职位",
+        "所在单位全称", "单位", "联系方式", "手机号码", "手机号", "电话"
+      ].map(normalizeHeader);
+      const values = (row || []).map((cell) => normalizeText(cell, "")).filter(Boolean);
+      const knownCount = values.filter((value) => knownHeaders.includes(normalizeHeader(value))).length;
+      const shortTextCount = values.filter((value) => !/\d{2,}/.test(value) && value.length <= 12).length;
+      return knownCount * 20 + values.length * 3 + shortTextCount;
+    }
+
+    function detectHeaderRowNumber(sheetRows) {
+      const candidates = [1, 2].filter((rowNumber) => rowNumber <= sheetRows.length);
+      if (!candidates.length) return 1;
+      return candidates
+        .map((rowNumber) => ({ rowNumber, score: scoreHeaderCandidate(sheetRows[rowNumber - 1]) }))
+        .sort((a, b) => b.score - a.score || a.rowNumber - b.rowNumber)[0].rowNumber;
     }
 
     async function parseWorkbook(file) {
@@ -1688,6 +1708,7 @@
         const parsed = await parseWorkbook(file);
         state.fileName = file.name;
         state.sheetRows = parsed.sheetRows;
+        els.headerRow.value = detectHeaderRowNumber(state.sheetRows);
         applyCurrentHeaderRow();
         els.runBtn.disabled = false;
         els.statusText.textContent = `文件读取完成，已按第 ${Number.parseInt(els.headerRow.value, 10)} 行作为列名。`;
