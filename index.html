@@ -83,23 +83,6 @@
       margin-bottom: 14px;
     }
 
-    .field-label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .match-status {
-      color: #bed4cc;
-      font-size: 12px;
-      font-weight: 650;
-    }
-
-    .match-status.missing {
-      color: #f2d09a;
-    }
-
     label {
       color: inherit;
       font-size: 13px;
@@ -220,10 +203,6 @@
       width: 16px;
       height: 16px;
       accent-color: var(--accent);
-    }
-
-    .check-item:has(input:disabled) {
-      color: #a6bdb6;
     }
 
     button:disabled {
@@ -509,15 +488,15 @@
       <section class="panel">
         <div class="panel-title">列名匹配</div>
         <div class="field">
-          <label class="field-label" for="companyColumn"><span>所属二级子公司</span><span id="companyColumnStatus" class="match-status">未匹配</span></label>
+          <label for="companyColumn">所属二级子公司</label>
           <select id="companyColumn" disabled></select>
         </div>
         <div class="field">
-          <label class="field-label" for="genderColumn"><span>性别</span><span id="genderColumnStatus" class="match-status">未匹配</span></label>
+          <label for="genderColumn">性别</label>
           <select id="genderColumn" disabled></select>
         </div>
         <div class="field">
-          <label class="field-label" for="ageColumn"><span>年龄</span><span id="ageColumnStatus" class="match-status">未匹配</span></label>
+          <label for="ageColumn">年龄</label>
           <select id="ageColumn" disabled></select>
         </div>
       </section>
@@ -610,9 +589,6 @@
       companyColumn: document.getElementById("companyColumn"),
       genderColumn: document.getElementById("genderColumn"),
       ageColumn: document.getElementById("ageColumn"),
-      companyColumnStatus: document.getElementById("companyColumnStatus"),
-      genderColumnStatus: document.getElementById("genderColumnStatus"),
-      ageColumnStatus: document.getElementById("ageColumnStatus"),
       useCompanyBalance: document.getElementById("useCompanyBalance"),
       useGenderBalance: document.getElementById("useGenderBalance"),
       useAgeBalance: document.getElementById("useAgeBalance"),
@@ -646,9 +622,9 @@
 
     function getBalanceOptions() {
       return {
-        company: !els.useCompanyBalance.disabled && !!els.useCompanyBalance.checked,
-        gender: !els.useGenderBalance.disabled && !!els.useGenderBalance.checked,
-        age: !els.useAgeBalance.disabled && !!els.useAgeBalance.checked
+        company: !!els.useCompanyBalance.checked,
+        gender: !!els.useGenderBalance.checked,
+        age: !!els.useAgeBalance.checked
       };
     }
 
@@ -891,10 +867,6 @@
       return ["分组编号", "组内序号", ...state.headers.filter((header) => !isUnnamedHeader(header))];
     }
 
-    function getSelectableHeaders(headers) {
-      return headers.filter((header) => !isUnnamedHeader(header));
-    }
-
     function findHeaderByAliases(aliases) {
       const normalizedAliases = aliases.map(normalizeHeader);
       return state.headers.find((header) => normalizedAliases.includes(normalizeHeader(header)));
@@ -1049,10 +1021,6 @@
       populateColumnSelect(els.companyColumn, state.headers, ["所属二级子公司", "二级子公司", "子公司"]);
       populateColumnSelect(els.genderColumn, state.headers, ["性别"]);
       populateColumnSelect(els.ageColumn, state.headers, ["年龄"]);
-      syncColumnMatchState(els.companyColumn, els.useCompanyBalance, els.companyColumnStatus, true);
-      syncColumnMatchState(els.genderColumn, els.useGenderBalance, els.genderColumnStatus, true);
-      syncColumnMatchState(els.ageColumn, els.useAgeBalance, els.ageColumnStatus, true);
-      state.balanceOptions = getBalanceOptions();
       const groupCount = Math.max(1, Number.parseInt(els.groupCount.value || "1", 10));
       els.peoplePerGroup.value = Math.ceil(state.rows.length / groupCount);
       refreshOverview();
@@ -1063,45 +1031,28 @@
 
     function populateColumnSelect(select, headers, preferredNames) {
       select.innerHTML = "";
-      const placeholder = document.createElement("option");
-      placeholder.value = "";
-      placeholder.textContent = "请选择列名";
-      select.appendChild(placeholder);
-      const selectableHeaders = getSelectableHeaders(headers);
-      selectableHeaders.forEach((header) => {
+      headers.forEach((header) => {
         const option = document.createElement("option");
         option.value = header;
         option.textContent = header;
         select.appendChild(option);
       });
       const normalizedPrefs = preferredNames.map(normalizeHeader);
-      const match = selectableHeaders.find((header) => normalizedPrefs.includes(normalizeHeader(header)));
-      select.value = match || "";
-      select.disabled = !selectableHeaders.length;
-    }
-
-    function syncColumnMatchState(select, checkbox, status, resetChecked = false) {
-      const hasColumn = !!select.value;
-      checkbox.disabled = !hasColumn;
-      if (resetChecked) {
-        checkbox.checked = hasColumn;
-      } else if (!hasColumn) {
-        checkbox.checked = false;
-      }
-      status.textContent = hasColumn ? "已匹配" : "未匹配";
-      status.classList.toggle("missing", !hasColumn);
+      const match = headers.find((header) => normalizedPrefs.includes(normalizeHeader(header)));
+      if (match) select.value = match;
+      select.disabled = !headers.length;
     }
 
     function refreshOverview() {
       const companyCol = els.companyColumn.value;
       const genderCol = els.genderColumn.value;
       const ageCol = els.ageColumn.value;
-      const companies = companyCol ? new Set(state.rows.map((row) => normalizeText(row.values[companyCol]))) : null;
-      const genders = genderCol ? new Set(state.rows.map((row) => normalizeText(row.values[genderCol]))) : null;
-      const avgAge = ageCol ? average(state.rows.map((row) => parseAge(row.values[ageCol]))) : null;
+      const companies = new Set(state.rows.map((row) => normalizeText(row.values[companyCol])));
+      const genders = new Set(state.rows.map((row) => normalizeText(row.values[genderCol])));
+      const avgAge = average(state.rows.map((row) => parseAge(row.values[ageCol])));
       els.metricRows.textContent = state.rows.length;
-      els.metricCompanies.textContent = companies ? companies.size || 0 : "-";
-      els.metricGenders.textContent = genders ? genders.size || 0 : "-";
+      els.metricCompanies.textContent = companies.size || 0;
+      els.metricGenders.textContent = genders.size || 0;
       els.metricAge.textContent = avgAge === null ? "-" : avgAge.toFixed(1);
       els.chips.innerHTML = [
         state.fileName ? `文件：${state.fileName}` : "",
@@ -1751,14 +1702,8 @@
       }
     });
 
-    [
-      [els.companyColumn, els.useCompanyBalance, els.companyColumnStatus],
-      [els.genderColumn, els.useGenderBalance, els.genderColumnStatus],
-      [els.ageColumn, els.useAgeBalance, els.ageColumnStatus]
-    ].forEach(([select, checkbox, status]) => {
+    [els.companyColumn, els.genderColumn, els.ageColumn].forEach((select) => {
       select.addEventListener("change", () => {
-        syncColumnMatchState(select, checkbox, status);
-        state.balanceOptions = getBalanceOptions();
         refreshOverview();
         state.resultRows = [];
         state.groups = [];
