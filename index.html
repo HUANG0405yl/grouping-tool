@@ -1016,7 +1016,7 @@
       select.innerHTML = "";
       const placeholder = document.createElement("option");
       placeholder.value = "";
-      placeholder.textContent = "请选择列名";
+      placeholder.textContent = "不选择（不参与均衡）";
       select.appendChild(placeholder);
       const selectableHeaders = getSelectableHeaders(headers);
       selectableHeaders.forEach((header) => {
